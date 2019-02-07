@@ -4,8 +4,8 @@ var Table = require("cli-table2");
 
 var connection = mysql.createConnection({
   host: "localhost",
-  user: "",
-  password: "",
+  user: "root",
+  password: "root",
   database: "bamazon_db",
   port: 3306
 });
@@ -102,8 +102,106 @@ function lowInventory() {
     initialPrompt();
   });
 }
-// function addInventory() {}
-// function addNewProduct() {}
+function addInventory() {
+  inquirer
+    .prompt({
+      name: "item",
+      type: "input",
+      message: "What is the id number of the productinventory for? "
+    })
+    .then(function(answer1) {
+      var selection = answer1.item;
+      connection.query("SELECT * FROM products WHERE id=?", selection, function(
+        err,
+        res
+      ) {
+        if (err) throw err;
+        if (res.length === 0) {
+          console.log("That product doesn't exsist");
+          addInventory();
+        } else {
+          inquirer
+            .prompt({
+              name: "quantity",
+              type: "input",
+              message: "How many items do you want to add to the inventory?"
+            })
+            .then(function(answer2) {
+              var quantity = answer2.quantity;
+              if (quantity < 0) {
+                console.log("Please enter a number higer than 0");
+                addInventory();
+              } else {
+                console.log("");
+                connection.query(
+                  "UPDATE products SET stock_quantity = " +
+                    quantity +
+                    " WHERE id = " +
+                    res[0].id,
+                  function(err, resUpdate) {
+                    if (err) throw err;
+                    console.log("");
+                    console.log("Quantity has been updated");
+                    console.log(
+                      quantity + "items added to " + res[0].products_name
+                    );
+                    console.log("");
+                    initialPrompt();
+                  }
+                );
+              }
+            });
+        }
+      });
+    });
+}
+function addNewProduct() {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "name",
+        message: "Please enter the name of the product you wish to add"
+      },
+      {
+        type: "input",
+        name: "department",
+        message: "What department does this item belong to?"
+      },
+      {
+        type: "input",
+        name: "price",
+        message: "Please enter the price of the item?"
+      },
+      {
+        type: "input",
+        name: "stock",
+        message: "Please enter a stock quantity for this item"
+      }
+    ])
+    .then(function(data) {
+      var name = data.name;
+      var department = data.department;
+      var price = data.price;
+      var stock = data.stock;
+      connection.query(
+        "INSERT INTO products SET ?",
+        {
+          products_name: name,
+          department_id: department,
+          price: price,
+          stock_quantity: stock
+        },
+        function(err, insertResult) {
+          if (err) console.log("Error: " + err);
+          console.log("");
+          console.log("New product " + name + " has been added");
+          console.log("");
+          initialPrompt();
+        }
+      );
+    });
+}
 function viewDepartments() {
   connection.query("SELECT * FROM departments", function(error, results) {
     if (error) throw error;
@@ -137,16 +235,18 @@ function initialPrompt() {
       name: "selection",
       type: "rawlist",
       choices: [
-        "View products for sale",
-        "View low inventory",
-        "View departments",
+        "View Products for Sale",
+        "View Low Inventory",
+        "View Departments",
+        "Add to Inventory",
+        "Add New Product",
         "Exit"
       ],
-      message: "Select one of the following: ",
+      message: "Select one of the following options: ",
       default: "Number"
     })
     .then(function(answer) {
-      console.log("OK");
+      console.log("ok");
     });
 }
 initialPrompt();
